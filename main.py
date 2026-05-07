@@ -77,6 +77,34 @@ class Rook(Piece):
 class Queen(Piece):
     PATHS = {"white": "assets/W_queen.png", "black": "assets/B_queen.png"}
 
+    def get_legal_moves(self, from_row, from_col, board):
+        moves = []
+
+        directions = [
+            (-1,  0),  # up
+            ( 1,  0),  # down
+            ( 0, -1),  # left
+            ( 0,  1),  # right
+            (-1, -1),  # up left
+            (-1,  1),  # up right
+            ( 1, -1),  # down left
+            ( 1,  1),  # down right
+        ]
+
+        for row_step, col_step in directions:
+            for i in range(1, board_size):
+                row = from_row + row_step * i
+                col = from_col + col_step * i
+                if not (0 <= row <= 7 and 0 <= col <= 7):
+                    break 
+                if board[row][col] is None:
+                    moves.append((row, col))
+                else:
+                    moves.append((row, col)) 
+                    break
+
+        return moves
+
 class King(Piece):
     PATHS = {"white": "assets/W_king.png", "black": "assets/B_king.png"}
 
