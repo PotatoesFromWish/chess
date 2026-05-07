@@ -13,6 +13,7 @@ class Piece:
         return self.SPRITE[self.color]
 
 
+
 class Pawn(Piece):
     PATHS = {"white": "assets/W_pawn.png", "black": "assets/B_pawn.png"}
 
@@ -77,8 +78,22 @@ class Game_square:
 class ChessGame:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
+
+        self.squares = [
+            [Game_square(row, col) for col in range(board_size)]
+            for row in range(board_size)
+        ]
+
         self.board  = make_board()
+
+        for row in range(board_size):
+            for col in range(board_size):
+                piece = self.board[row][col]
+                if piece:
+                    piece.square = self.squares[row][col]
+
         self.selected    = None
+        self.previous_selected = None
         self.valid_moves = []
         self.turn = "white"
 
@@ -86,10 +101,6 @@ class ChessGame:
         Game_square.update_size(w, h)
         self.square_size = Game_square.size
 
-        self.squares = [
-            [Game_square(row, col) for col in range(board_size)]
-            for row in range(board_size)
-        ]
 
         self.reload_sprites()
 
@@ -153,6 +164,12 @@ class ChessGame:
 
         pygame.display.flip()
 
+    def move_piece(self, from_row, from_col, to_row, to_col):
+            piece = self.board[from_row][from_col]
+            self.board[to_row][to_col] = piece
+            self.board[from_row][from_col] = None
+            piece.square = self.squares[to_row][to_col] 
+
 
 def main():
     pygame.init()
@@ -179,7 +196,19 @@ def main():
                 for row in game.squares:
                     for sq in row:
                         if sq.hitbox.collidepoint(event.pos):
-                            game.selected = (sq.row, sq.col)
+                            piece = game.board[sq.row][sq.col]
+                            if game.selected is None:
+                            # first click, select a piece
+                                if piece:
+                                    game.selected = (sq.row, sq.col)
+                            elif game.selected == (sq.row, sq.col):
+                                game.selected = None
+                            else:
+                            # second click, move to this square
+                                from_row, from_col = game.selected
+                                game.move_piece(from_row, from_col, sq.row, sq.col)
+                                game.selected = None
+
 
 
         game.draw_board()
