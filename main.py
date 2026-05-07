@@ -170,6 +170,13 @@ class ChessGame:
             self.board[from_row][from_col] = None
             piece.square = self.squares[to_row][to_col] 
 
+    def legal_move(self, from_row, from_col, to_row, to_col):
+        piece = self.board[from_row][from_col]
+        target_piece = self.board[to_row][to_col]
+        if target_piece is not None and piece.color == target_piece.color:
+            return False
+        return True
+
 
 def main():
     pygame.init()
@@ -206,7 +213,8 @@ def main():
                             else:
                             # second click, move to this square
                                 from_row, from_col = game.selected
-                                game.move_piece(from_row, from_col, sq.row, sq.col)
+                                if game.legal_move(from_row, from_col, sq.row, sq.col):
+                                    game.move_piece(from_row, from_col, sq.row, sq.col)
                                 game.selected = None
 
 
