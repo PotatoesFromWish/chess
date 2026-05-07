@@ -57,7 +57,10 @@ class Pawn(Piece):
 
         for row, col in candidates:
             if 0 <= row <= board_size - 1 and 0 <= col <= board_size - 1:
-                moves.append((row, col))        
+                if board[row][col] is self.color:
+                    break 
+                moves.append((row, col))  
+                break
         
         self.hasmoved = True
         return moves
@@ -87,7 +90,8 @@ class Bishop(Piece):
                 if board[row][col] is None:
                     moves.append((row, col))
                 else:
-                    moves.append((row, col)) 
+                    if board[row][col].color is not self.color:
+                        moves.append((row, col)) 
                     break
 
         return moves
@@ -117,7 +121,8 @@ class Rook(Piece):
                 if board[row][col] is None:
                     moves.append((row, col))
                 else:
-                    moves.append((row, col)) 
+                    if board[row][col].color is not self.color:
+                        moves.append((row, col)) 
                     break
 
         return moves
@@ -148,8 +153,10 @@ class Queen(Piece):
                 if board[row][col] is None:
                     moves.append((row, col))
                 else:
-                    moves.append((row, col)) 
+                    if board[row][col].color is not self.color:
+                        moves.append((row, col)) 
                     break
+
 
         return moves
 
@@ -159,21 +166,31 @@ class King(Piece):
     def get_legal_moves(self, from_row, from_col, board):
         moves = []
 
-        candidates = [
-            (from_row - 1, from_col),      # up
-            (from_row + 1, from_col),      # down
-            (from_row, from_col - 1),      # left
-            (from_row, from_col + 1),      # right
-            (from_row - 1, from_col - 1),  # up left
-            (from_row - 1, from_col + 1),  # up right
-            (from_row + 1, from_col - 1),  # down left
-            (from_row + 1, from_col + 1),  # down right
+        directions = [
+            (-1,  0),  # up
+            ( 1,  0),  # down
+            ( 0, -1),  # left
+            ( 0,  1),  # right
+            (-1, -1),  # up left
+            (-1,  1),  # up right
+            ( 1, -1),  # down left
+            ( 1,  1),  # down right
         ]
 
-        for row, col in candidates:
-            if 0 <= row <= board_size - 1 and 0 <= col <= board_size - 1:
-                moves.append((row, col))
 
+
+        for row_step, col_step in directions:
+            for i in range(1, 1):
+                row = from_row + row_step * i
+                col = from_col + col_step * i
+                if not (0 <= row <= 7 and 0 <= col <= 7):
+                    break 
+                if board[row][col] is None:
+                    moves.append((row, col))
+                else:
+                    if board[row][col].color is not self.color:
+                        moves.append((row, col)) 
+                    break
         return moves
 
 
@@ -316,11 +333,11 @@ class ChessGame:
 
     def legal_move(self, from_row, from_col, to_row, to_col):
         piece = self.board[from_row][from_col]
-        target_piece = self.board[to_row][to_col]
-        if target_piece is not None and piece.color == target_piece.color:
+        self.valid_moves = piece.get_legal_moves(from_row, from_col, self.board)
+
+        if (to_row, to_col) not in self.valid_moves:
             return False
-        elif (to_row, to_col) not in piece.get_legal_moves(from_row, from_col, self.board):
-            return False
+    
         return True
 
 
@@ -354,14 +371,17 @@ def main():
                             # first click, select a piece
                                 if piece:
                                     game.selected = (sq.row, sq.col)
+                                    game.valid_moves = piece.get_legal_moves(sq.row, sq.col, game.board)
                             elif game.selected == (sq.row, sq.col):
                                 game.selected = None
+                                game.valid_moves = []
                             else:
                             # second click, move to this square
                                 from_row, from_col = game.selected
                                 if game.legal_move(from_row, from_col, sq.row, sq.col):
                                     game.move_piece(from_row, from_col, sq.row, sq.col)
                                 game.selected = None
+                                game.valid_moves = []
 
 
 
