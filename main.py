@@ -21,19 +21,43 @@ class Pawn(Piece):
         super().__init__(color)
         self.hasmoved = False
     
-    def legal_moves(self, from_row, from_col):
+    def get_legal_moves(self, from_row, from_col, board):
+        moves = []
+        candidates = []
+        
         if self.hasmoved:
             Num_moves = 1
         elif not self.hasmoved:
             Num_moves = 2
 
-        moves = []
-
         for i in range(Num_moves):
             if self.color == "white":
-                moves.append((from_row - (i + 1), from_col))
+                new_row = from_row - (i + 1)
+                if board[new_row][from_col] is None:
+                    candidates.append((new_row, from_col))
+                else:
+                    break
             elif self.color == "black":
-                moves.append((from_row + (i + 1), from_col))
+                new_row = from_row + (i + 1)
+                if board[new_row][from_col] is None:
+                    candidates.append((new_row, from_col))
+                else:
+                    break
+
+        if self.color == "white":
+            if board[from_row - 1][from_col - 1] is not None:
+                candidates.append((from_row - 1, from_col - 1))
+            if board[from_row - 1][from_col + 1] is not None:
+                candidates.append((from_row - 1, from_col + 1))
+        if self.color == "black":
+            if board[from_row + 1][from_col - 1] is not None:
+                candidates.append((from_row + 1, from_col - 1))
+            if board[from_row + 1][from_col + 1] is not None:
+                candidates.append((from_row + 1, from_col + 1))
+
+        for row, col in candidates:
+            if 0 <= row <= board_size - 1 and 0 <= col <= board_size - 1:
+                moves.append((row, col))        
         
         self.hasmoved = True
         return moves
@@ -55,6 +79,26 @@ class Queen(Piece):
 
 class King(Piece):
     PATHS = {"white": "assets/W_king.png", "black": "assets/B_king.png"}
+
+    def get_legal_moves(self, from_row, from_col, board):
+        moves = []
+
+        candidates = [
+            (from_row - 1, from_col),      # up
+            (from_row + 1, from_col),      # down
+            (from_row, from_col - 1),      # left
+            (from_row, from_col + 1),      # right
+            (from_row - 1, from_col - 1),  # up left
+            (from_row - 1, from_col + 1),  # up right
+            (from_row + 1, from_col - 1),  # down left
+            (from_row + 1, from_col + 1),  # down right
+        ]
+
+        for row, col in candidates:
+            if 0 <= row <= board_size - 1 and 0 <= col <= board_size - 1:
+                moves.append((row, col))
+
+        return moves
 
 
 
@@ -199,7 +243,7 @@ class ChessGame:
         target_piece = self.board[to_row][to_col]
         if target_piece is not None and piece.color == target_piece.color:
             return False
-        elif (to_row, to_col) not in piece.legal_moves(from_row, from_col):
+        elif (to_row, to_col) not in piece.get_legal_moves(from_row, from_col, self.board):
             return False
         return True
 
