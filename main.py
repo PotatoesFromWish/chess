@@ -8,6 +8,22 @@ class Piece:
     def __init__(self, color: str):
         self.color = color
 
+    def move_validating(self, directions, move_by, from_row, from_col, board):
+        moves = []
+        for row_step, col_step in directions:
+            for i in range(1, move_by):
+                row = from_row + row_step * i
+                col = from_col + col_step * i
+                if not (0 <= row <= 7 and 0 <= col <= 7):
+                    break 
+                if board[row][col] is None:
+                    moves.append((row, col))
+                else:
+                    if board[row][col].color is not self.color:
+                        moves.append((row, col)) 
+                    break
+        return moves
+
     @property
     def sprite(self) -> pygame.Surface:
         return self.SPRITE[self.color]
@@ -43,25 +59,13 @@ class Pawn(Piece):
             if from_col < 7 and board[from_row + 1][from_col + 1] is not None:
                 attacks.append((1, 1))
 
-
-
-
-        for row_step, col_step in directions:
-            for i in range(1, move_by):
-                row = from_row + row_step * i
-                col = from_col + col_step * i
-                if not (0 <= row <= 7 and 0 <= col <= 7):
-                    break 
-                if board[row][col] is None:
-                    moves.append((row, col))
-                else:
-                    break
+        moves = self.move_validating(directions, move_by, from_row, from_col, board)
         
-
         for row_step, col_step in attacks:
             row = from_row + row_step
             col = from_col + col_step
-            moves.append((row, col))
+            if board[row][col].color is not self.color:
+                moves.append((row, col))
                 
 
         return moves
@@ -74,7 +78,6 @@ class Bishop(Piece):
     PATHS = {"white": "assets/W_bishop.png", "black": "assets/B_bishop.png"}
 
     def get_legal_moves(self, from_row, from_col, board):
-        moves = []
         move_by = board_size
 
         directions = [
@@ -84,29 +87,31 @@ class Bishop(Piece):
             ( 1,  1),  # down right
         ]
 
-        for row_step, col_step in directions:
-            for i in range(1, move_by):
-                row = from_row + row_step * i
-                col = from_col + col_step * i
-                if not (0 <= row <= 7 and 0 <= col <= 7):
-                    break 
-                if board[row][col] is None:
-                    moves.append((row, col))
-                else:
-                    if board[row][col].color is not self.color:
-                        moves.append((row, col)) 
-                    break
-
-        return moves
+        return self.move_validating(directions, move_by, from_row, from_col, board)
 
 class Horse(Piece):
     PATHS = {"white": "assets/W_horse.png", "black": "assets/B_horse.png"}
+
+    def get_legal_moves(self, from_row, from_col, board):
+        move_by = 2
+
+        directions = [
+            (-2,  1),  # up
+            (-2,  -1),  # down
+            ( 2, 1),  # left
+            ( 2,  -1),  # right
+            (-1, 2),  # up left
+            (-1,  -2),  # up right
+            ( 1, 2),  # down left
+            ( 1,  -2),  # down right
+        ]
+
+        return self.move_validating(directions, move_by, from_row, from_col, board)
 
 class Rook(Piece):
     PATHS = {"white": "assets/W_rook.png", "black": "assets/B_rook.png"}
 
     def get_legal_moves(self, from_row, from_col, board):
-        moves = []
         move_by = board_size
 
         directions = [
@@ -116,26 +121,12 @@ class Rook(Piece):
             ( 0,  1),  # right
         ]
 
-        for row_step, col_step in directions:
-            for i in range(1, move_by):
-                row = from_row + row_step * i
-                col = from_col + col_step * i
-                if not (0 <= row <= 7 and 0 <= col <= 7):
-                    break 
-                if board[row][col] is None:
-                    moves.append((row, col))
-                else:
-                    if board[row][col].color is not self.color:
-                        moves.append((row, col)) 
-                    break
-
-        return moves
+        return self.move_validating(directions, move_by, from_row, from_col, board)
 
 class Queen(Piece):
     PATHS = {"white": "assets/W_queen.png", "black": "assets/B_queen.png"}
 
     def get_legal_moves(self, from_row, from_col, board):
-        moves = []
         move_by = board_size
 
         directions = [
@@ -149,27 +140,12 @@ class Queen(Piece):
             ( 1,  1),  # down right
         ]
 
-        for row_step, col_step in directions:
-            for i in range(1, move_by):
-                row = from_row + row_step * i
-                col = from_col + col_step * i
-                if not (0 <= row <= 7 and 0 <= col <= 7):
-                    break 
-                if board[row][col] is None:
-                    moves.append((row, col))
-                else:
-                    if board[row][col].color is not self.color:
-                        moves.append((row, col)) 
-                    break
-
-
-        return moves
+        return self.move_validating(directions, move_by, from_row, from_col, board)
 
 class King(Piece):
     PATHS = {"white": "assets/W_king.png", "black": "assets/B_king.png"}
 
     def get_legal_moves(self, from_row, from_col, board):
-        moves = []
         move_by = 2
 
         directions = [
@@ -185,19 +161,7 @@ class King(Piece):
 
 
 
-        for row_step, col_step in directions:
-            for i in range(1, move_by):
-                row = from_row + row_step * i
-                col = from_col + col_step * i
-                if not (0 <= row <= 7 and 0 <= col <= 7):
-                    break 
-                if board[row][col] is None:
-                    moves.append((row, col))
-                else:
-                    if board[row][col].color is not self.color:
-                        moves.append((row, col)) 
-                    break
-        return moves
+        return self.move_validating(directions, move_by, from_row, from_col, board)
 
 
 
@@ -374,7 +338,7 @@ def main():
                         if sq.hitbox.collidepoint(event.pos):
                             piece = game.board[sq.row][sq.col]
                             if game.selected is None:
-                            # first click, select a piece
+                            # first click selects a piece
                                 if piece:
                                     game.selected = (sq.row, sq.col)
                                     game.valid_moves = piece.get_legal_moves(sq.row, sq.col, game.board)
@@ -383,9 +347,9 @@ def main():
                                 game.valid_moves = []
 
                             else:
-                                # second click, move to this square
+                                # second click moves the piece to this square
                                 from_row, from_col = game.selected
-                                moving_piece = game.board[from_row][from_col]  # ← the piece being moved
+                                moving_piece = game.board[from_row][from_col] 
                                 if game.legal_move(from_row, from_col, sq.row, sq.col):
                                     game.move_piece(from_row, from_col, sq.row, sq.col)
                                     if isinstance(moving_piece, Pawn):
