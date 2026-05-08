@@ -8,6 +8,7 @@ class Piece:
 
     def __init__(self, color: str):
         self.color = color
+        self.has_moved = False
 
     def move_validating(self, directions, move_by, from_row, from_col, board):
         moves = []
@@ -36,7 +37,6 @@ class Pawn(Piece):
 
     def __init__(self, color: str):
         super().__init__(color)
-        self.hasmoved = False
         self.has_moved_2 = False
     
     def get_legal_moves(self, from_row, from_col, board):
@@ -45,7 +45,7 @@ class Pawn(Piece):
         attacks = []
         move_by = 2
 
-        if not self.hasmoved:
+        if not self.has_moved:
             move_by = 3
 
         if self.color == "white":
@@ -374,8 +374,7 @@ def main():
                                 moving_piece = game.board[from_row][from_col] 
                                 if game.legal_move(from_row, from_col, sq.row, sq.col):
                                     game.move_piece(from_row, from_col, sq.row, sq.col)
-                                    if isinstance(moving_piece, Pawn):
-                                        moving_piece.hasmoved = True
+                                    moving_piece.has_moved = True
                                 game.selected = None
                                 game.valid_moves = []
 
