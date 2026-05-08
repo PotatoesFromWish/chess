@@ -37,6 +37,7 @@ class Pawn(Piece):
     def __init__(self, color: str):
         super().__init__(color)
         self.hasmoved = False
+        self.has_moved_2 = False
     
     def get_legal_moves(self, from_row, from_col, board):
         moves = []
@@ -53,6 +54,12 @@ class Pawn(Piece):
                 attacks.append((-1, -1))
             if from_col < 7 and board[from_row - 1][from_col + 1] is not None:
                 attacks.append((-1, 1))
+
+            if from_col > 0 and isinstance(board[from_row][from_col - 1], Pawn) and board[from_row][from_col - 1].has_moved_2:
+                attacks.append((-1, -1))
+            if from_col < 7 and isinstance(board[from_row][from_col + 1], Pawn) and board[from_row][from_col + 1].has_moved_2:
+                attacks.append((-1, 1))
+
         elif self.color == "black":
             directions.append((1, 0))
             if from_col > 0 and board[from_row + 1][from_col - 1] is not None:
@@ -60,14 +67,23 @@ class Pawn(Piece):
             if from_col < 7 and board[from_row + 1][from_col + 1] is not None:
                 attacks.append((1, 1))
 
+            if from_col > 0 and isinstance(board[from_row][from_col - 1], Pawn) and board[from_row][from_col - 1].has_moved_2:
+                attacks.append((1, -1))
+            if from_col < 7 and isinstance(board[from_row][from_col + 1], Pawn) and board[from_row][from_col + 1].has_moved_2:
+                attacks.append((1, 1))
+
         moves = self.move_validating(directions, move_by, from_row, from_col, board)
-        
+
         for row_step, col_step in attacks:
             row = from_row + row_step
             col = from_col + col_step
-            if board[row][col].color is not self.color:
+            target = board[row][col]
+            # normal capture
+            if target is not None and target.color is not self.color:
                 moves.append((row, col))
-                
+            # en passant
+            elif target is None:
+                moves.append((row, col))
 
         return moves
 
@@ -287,10 +303,25 @@ class ChessGame:
         pygame.display.flip()
 
     def move_piece(self, from_row, from_col, to_row, to_col):
-            piece = self.board[from_row][from_col]
-            self.board[to_row][to_col] = piece
-            self.board[from_row][from_col] = None
-            piece.square = self.squares[to_row][to_col] 
+        piece = self.board[from_row][from_col]
+
+        # resets has_moved_2 on all pawns before applying the new move
+        for r in range(board_size):
+            for c in range(board_size):
+                if isinstance(self.board[r][c], Pawn):
+                    self.board[r][c].has_moved_2 = False
+
+        # en passant
+        if isinstance(piece, Pawn) and from_col != to_col and self.board[to_row][to_col] is None:
+            self.board[from_row][to_col] = None
+
+        self.board[to_row][to_col] = piece
+        self.board[from_row][from_col] = None
+        piece.square = self.squares[to_row][to_col]
+
+        if isinstance(piece, Pawn) and abs(to_row - from_row) == 2:
+            piece.has_moved_2 = True
+
 
     def legal_move(self, from_row, from_col, to_row, to_col):
         piece = self.board[from_row][from_col]
