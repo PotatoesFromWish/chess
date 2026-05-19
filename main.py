@@ -184,7 +184,28 @@ class King(Piece):
             ( 1,  1),  # down right
         ]
 
-        return self.move_validating(directions, move_by, from_row, from_col, board)
+        moves = self.move_validating(directions, move_by, from_row, from_col, board)
+
+        if not self.has_moved:
+            # kingside castling
+            kingside_rook = board[from_row][7]
+            if (
+                isinstance(kingside_rook, Rook)
+                and not kingside_rook.has_moved
+                and all(board[from_row][c] is None for c in range(from_col + 1, 7))
+            ):
+                moves.append((from_row, from_col + 2))
+
+            # queenside castling
+            queenside_rook = board[from_row][0]
+            if (
+                isinstance(queenside_rook, Rook)
+                and not queenside_rook.has_moved
+                and all(board[from_row][c] is None for c in range(1, from_col))
+            ):
+                moves.append((from_row, from_col - 2))
+
+        return moves
 
 
 
@@ -361,7 +382,7 @@ class ChessGame:
         self.promotion_pending = (row, col)
         self.promotion_squares = {}
         options = [Queen, Rook, Bishop, Horse]
-        direction = 1 if row == 0 else -1  # white promotes at row 0, go down; black at row 7, go up
+        direction = 1 if row == 0 else -1  #
         for i, cls in enumerate(options):
             target_row = row + direction * (i + 1)
             self.promotion_squares[(target_row, col)] = cls
@@ -378,6 +399,21 @@ class ChessGame:
         # en passant
         if isinstance(piece, Pawn) and from_col != to_col and self.board[to_row][to_col] is None:
             self.board[from_row][to_col] = None
+
+        # castling: move the rook to its new square alongside the king
+        if isinstance(piece, King) and abs(to_col - from_col) == 2:
+            if to_col == 6:  # kingside
+                castling_rook = self.board[from_row][7]
+                self.board[from_row][5] = castling_rook
+                self.board[from_row][7] = None
+                castling_rook.square = self.squares[from_row][5]
+                castling_rook.has_moved = True
+            elif to_col == 2:  # queenside
+                castling_rook = self.board[from_row][0]
+                self.board[from_row][3] = castling_rook
+                self.board[from_row][0] = None
+                castling_rook.square = self.squares[from_row][3]
+                castling_rook.has_moved = True
 
         self.board[to_row][to_col] = piece
         self.board[from_row][from_col] = None
@@ -407,8 +443,36 @@ class ChessGame:
     def filter_legal_moves(self, from_row, from_col, moves):
         piece = self.board[from_row][from_col]
         legal = []
+        opponent_color = "black" if piece.color == "white" else "white"
 
         for to_row, to_col in moves:
+            # castling requires extra checks beyond the normal "king not in check after move"
+            if isinstance(piece, King) and abs(to_col - from_col) == 2:
+                mid_col = from_col + (1 if to_col > from_col else -1)
+
+                # king must not currently be in check
+                cur_attacks = []
+                for r in range(board_size):
+                    for c in range(board_size):
+                        p = self.board[r][c]
+                        if p and p.color == opponent_color:
+                            cur_attacks += p.get_legal_moves(r, c, self.board)
+                if (from_row, from_col) in cur_attacks:
+                    continue
+
+                # king must not pass through an attacked square
+                board_mid = [row[:] for row in self.board]
+                board_mid[from_row][mid_col] = board_mid[from_row][from_col]
+                board_mid[from_row][from_col] = None
+                mid_attacks = []
+                for r in range(board_size):
+                    for c in range(board_size):
+                        p = board_mid[r][c]
+                        if p and p.color == opponent_color:
+                            mid_attacks += p.get_legal_moves(r, c, board_mid)
+                if (from_row, mid_col) in mid_attacks:
+                    continue
+
             # simulate the move on a copy of the board
             board_copy = [row[:] for row in self.board]
             board_copy[to_row][to_col] = board_copy[from_row][from_col]
@@ -424,7 +488,6 @@ class ChessGame:
                         break
 
             # collect opponent moves on the copied board
-            opponent_color = "black" if piece.color == "white" else "white"
             opponent_attacks = []
             for r in range(board_size):
                 for c in range(board_size):
