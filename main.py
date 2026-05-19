@@ -24,13 +24,15 @@ class Piece:
                 row = from_row + row_step * i
                 col = from_col + col_step * i
                 if not (0 <= row <= board_size - 1 and 0 <= col <= board_size - 1):
-                    break 
+                    break
                 if  board[row][col] is None:
                     moves.append((row, col))
-                else:
+                if board[row][col] is not None:
+                    if board[row][col].color == self.color:
+                        break
                     if board[row][col].color is not self.color and not isinstance(self, Pawn):
                         moves.append((row, col)) 
-                    break
+                        break
 
         return moves
 
@@ -292,10 +294,10 @@ class ChessGame:
 
                 if (row, col) == self.selected:
                     color = Game_square.selected_color
-                elif (row, col) == self.in_check:
-                    color = Game_square.in_check_color
                 elif (row, col) in self.valid_moves:
                     color = Game_square.highlight_color
+                elif (row, col) == self.in_check:
+                    color = Game_square.in_check_color
                 elif (row, col) in self.promotion_squares:
                     color = Game_square.promotion_color
                 else:
@@ -343,7 +345,7 @@ class ChessGame:
                     moves = piece.get_legal_moves(row, col, self.board)
                     if piece.color == "white":
                         self.white_moves[piece.id] = moves
-                    else:
+                    elif piece.color == "black":
                         self.black_moves[piece.id] = moves
 
     def start_promotion(self, row, col):
@@ -386,15 +388,45 @@ class ChessGame:
 
     def legal_move(self, from_row, from_col, to_row, to_col):
         piece = self.board[from_row][from_col]
-        self.valid_moves = piece.get_legal_moves(from_row, from_col, self.board)
+        raw_moves = piece.get_legal_moves(from_row, from_col, self.board)
+        self.valid_moves = self.filter_legal_moves(from_row, from_col, raw_moves)
 
         if (to_row, to_col) not in self.valid_moves:
             return False
-        #elif self.in_check and not isinstance(piece, King):
-            #return False
-        #elif self.turn != piece.color:
-            #return False
         return True
+    
+    def filter_legal_moves(self, from_row, from_col, moves):
+        piece = self.board[from_row][from_col]
+        legal = []
+
+        for to_row, to_col in moves:
+            # simulate the move on a copy of the board
+            board_copy = [row[:] for row in self.board]
+            board_copy[to_row][to_col] = board_copy[from_row][from_col]
+            board_copy[from_row][from_col] = None
+
+            # find where the king is after the move
+            king_pos = None
+            for r in range(board_size):
+                for c in range(board_size):
+                    p = board_copy[r][c]
+                    if isinstance(p, King) and p.color == piece.color:
+                        king_pos = (r, c)
+                        break
+
+            # collect opponent moves on the copied board
+            opponent_color = "black" if piece.color == "white" else "white"
+            opponent_attacks = []
+            for r in range(board_size):
+                for c in range(board_size):
+                    p = board_copy[r][c]
+                    if p and p.color == opponent_color:
+                        opponent_attacks += p.get_legal_moves(r, c, board_copy)
+
+            if king_pos not in opponent_attacks:
+                legal.append((to_row, to_col))
+
+        return legal
         
 
 
@@ -430,7 +462,6 @@ def main():
                                 game.board[pawn_row][pawn_col] = chosen_cls(promoting_color)
                                 game.promotion_pending = None
                                 game.promotion_squares = {}
-                                game.turn = "black" if game.turn == "white" else "white"
                 else:
                     for row in game.squares:
                         for sq in row:
@@ -440,7 +471,8 @@ def main():
                                     if piece:
                                         if piece.color == game.turn:
                                             game.selected = (sq.row, sq.col)
-                                            game.valid_moves = piece.get_legal_moves(sq.row, sq.col, game.board)
+                                            raw_moves = piece.get_legal_moves(sq.row, sq.col, game.board)
+                                            game.valid_moves = game.filter_legal_moves(sq.row, sq.col, raw_moves)
                                 elif game.selected == (sq.row, sq.col):
                                     game.selected = None
                                     game.valid_moves = []
@@ -453,16 +485,20 @@ def main():
 
                                             game.compute_all_moves()
 
+                                            game.in_check = None    
                                             for row in range(board_size):
                                                 for col in range(board_size):
                                                     piece = game.board[row][col]
                                                     if isinstance(piece, King):
-                                                        opponent_moves = game.black_moves if piece.color == "white" else game.white_moves
+                                                        opponent_moves = None
+                                                        if piece.color == "white":
+                                                            opponent_moves = game.black_moves
+                                                        elif piece.color == "black":
+                                                            opponent_moves = game.white_moves
                                                         is_attacked = any((row, col) in moves for moves in opponent_moves.values())
                                                         if is_attacked:
                                                             game.in_check = (row, col)
-                                                        else:
-                                                            game.in_check = None
+
                                             
                                             if game.turn == "white":
                                                 game.turn = "black"
