@@ -461,6 +461,8 @@ def main():
                         game.board[pawn_row][pawn_col] = chosen_cls(promoting_color)
                         game.promotion_pending = None
                         game.promotion_squares = {}
+                        game.draw_board()
+                        pygame.time.wait(500)
                         game.flipped = not game.flipped
                 else:
                     piece = game.board[sq.row][sq.col]
@@ -497,7 +499,10 @@ def main():
                                             if any((row, col) in m for m in opp_moves.values()):
                                                 game.in_check = (row, col)
 
+                                
                                 if game.promotion_pending is None:
+                                    game.draw_board()
+                                    pygame.time.wait(500)
                                     game.flipped = not game.flipped
 
                         game.selected = None
