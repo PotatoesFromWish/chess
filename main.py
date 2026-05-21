@@ -40,7 +40,8 @@ class Piece:
 
 
 class Pawn(Piece):
-    PATHS = {"white": "assets/W_pawn.png", "black": "assets/B_pawn.png"}
+    PATHS = {"white": "assets/sprites/W_pawn.png", "black": "assets/sprites/B_pawn.png"}
+    sound = "assets/sounds/Pawn.wav"
 
     def __init__(self, color: str):
         super().__init__(color)
@@ -94,42 +95,83 @@ class Pawn(Piece):
 
 
 class Bishop(Piece):
-    PATHS = {"white": "assets/W_bishop.png", "black": "assets/B_bishop.png"}
+    PATHS = {"white": "assets/sprites/W_bishop.png", "black": "assets/sprites/B_bishop.png"}
+    sound = "assets/sounds/Bishop.wav"
 
     def get_legal_moves(self, from_row, from_col, board):
-        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        directions = [
+            (-1, -1), 
+            (-1, 1), 
+            (1, -1), 
+            (1, 1)]
+        
         return self.move_validating(directions, board_size, from_row, from_col, board)
 
 
 class Horse(Piece):
-    PATHS = {"white": "assets/W_horse.png", "black": "assets/B_horse.png"}
+    PATHS = {"white": "assets/sprites/W_horse.png", "black": "assets/sprites/B_horse.png"}
+    sound = "assets/sounds/Horse.wav"
 
     def get_legal_moves(self, from_row, from_col, board):
-        directions = [(-2, 1), (-2, -1), (2, 1), (2, -1), (-1, 2), (-1, -2), (1, 2), (1, -2)]
+        directions = [
+            (-2, 1), 
+            (-2, -1), 
+            (2, 1), 
+            (2, -1), 
+            (-1, 2), 
+            (-1, -2), 
+            (1, 2), 
+            (1, -2)]
+        
         return self.move_validating(directions, 2, from_row, from_col, board)
 
 
 class Rook(Piece):
-    PATHS = {"white": "assets/W_rook.png", "black": "assets/B_rook.png"}
+    PATHS = {"white": "assets/sprites/W_rook.png", "black": "assets/sprites/B_rook.png"}
+    sound = "assets/sounds/Rook.wav"
 
     def get_legal_moves(self, from_row, from_col, board):
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions = [
+            (-1, 0), 
+            (1, 0), 
+            (0, -1), 
+            (0, 1)]
+
         return self.move_validating(directions, board_size, from_row, from_col, board)
 
 
 class Queen(Piece):
-    PATHS = {"white": "assets/W_queen.png", "black": "assets/B_queen.png"}
+    PATHS = {"white": "assets/sprites/W_queen.png", "black": "assets/sprites/B_queen.png"}
+    sound = "assets/sounds/Queen.wav"
 
     def get_legal_moves(self, from_row, from_col, board):
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        directions = [
+            (-1, 0), 
+            (1, 0), 
+            (0, -1), 
+            (0, 1), 
+            (-1, -1), 
+            (-1, 1), 
+            (1, -1), (
+                1, 1)]
+        
         return self.move_validating(directions, board_size, from_row, from_col, board)
 
 
 class King(Piece):
-    PATHS = {"white": "assets/W_king.png", "black": "assets/B_king.png"}
-
+    PATHS = {"white": "assets/sprites/W_king.png", "black": "assets/sprites/B_king.png"}
+    sound = "assets/sounds/King.wav"
     def get_legal_moves(self, from_row, from_col, board):
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        directions = [
+            (-1, 0), 
+            (1, 0), 
+            (0, -1), 
+            (0, 1), 
+            (-1, -1), 
+            (-1, 1), 
+            (1, -1), 
+            (1, 1)]
+
         moves = self.move_validating(directions, 2, from_row, from_col, board)
 
         if not self.has_moved:
@@ -214,7 +256,13 @@ class ChessGame:
         Game_square.update_size(w, h)
         self.square_size = Game_square.size
         self.reload_sprites()
+        self.load_sounds()
         self.compute_all_moves()
+
+
+    def load_sounds(self):
+        for cls in (Pawn, Bishop, Horse, Rook, Queen, King):
+            cls.sound = pygame.mixer.Sound(cls.sound)
 
     def on_resize(self, width: int, height: int):
         Game_square.update_size(width, height)
@@ -350,8 +398,11 @@ class ChessGame:
                 self.start_promotion(to_row, to_col)
             if piece.color == "black" and to_row == board_size - 1:
                 self.start_promotion(to_row, to_col)
+        
+        piece.sound.play()
 
     def reset_game(self):
+        pygame.time.wait(3000)
         self.board = make_board()
         self.squares = [[Game_square(row, col) for col in range(board_size)] for row in range(board_size)]
         for row in range(board_size):
